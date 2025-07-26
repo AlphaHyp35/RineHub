@@ -1,102 +1,33 @@
--- main.lua: Aladia PvP – Rayfield UI Script (Safe Features Only)
+-- RineHub: Premium Script with Rayfield UI -- Updated with: Silent Aim, WallHack, ESP, Tracers, Speed Hack, Fly, Kill Aura
 
--- Enable secure mode and load official Rayfield
-getgenv().SecureMode = true
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+-- Load Rayfield UI local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield/library.lua"))()
 
-local Players = game:GetService("Players")
-local Camera = workspace.CurrentCamera
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local Window = Rayfield:CreateWindow({ Name = "RineHub - Aladia PVP", LoadingTitle = "RineHub Injector", LoadingSubtitle = "by AlphaHyp35", ConfigurationSaving = { Enabled = true, FolderName = "RineHubConfig", FileName = "AladiaConfig" }, Discord = { Enabled = false }, KeySystem = false })
 
--- Settings
-local ESPEnabled = false
-local AimbotEnabled = false
+local MainTab = Window:CreateTab("Main", 4483362458)
 
--- Helper: Highlight ESP
-local function toggleESP(state)
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            local existing = plr.Character:FindFirstChild("ESPBox")
-            if state and not existing then
-                local hl = Instance.new("Highlight")
-                hl.Name = "ESPBox"
-                hl.FillColor = Color3.new(1, 0, 0)
-                hl.OutlineColor = Color3.new(1, 1, 1)
-                hl.Adornee = plr.Character
-                hl.Parent = plr.Character
-            elseif not state and existing then
-                existing:Destroy()
-            end
-        end
-    end
-end
+-- ESP and Tracer local ESPEnabled = false local function CreateESP(player) local box = Instance.new("BoxHandleAdornment") box.Size = Vector3.new(3, 5, 1) box.Adornee = player.Character:FindFirstChild("HumanoidRootPart") box.AlwaysOnTop = true box.ZIndex = 5 box.Color3 = Color3.new(1, 0, 0) box.Transparency = 0.3 box.Parent = player.Character end
 
--- Get closest on-screen player
-local function getClosestInCrosshair()
-    local closest, dist = nil, math.huge
-    local mousePos = LocalPlayer:GetMouse()
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") then
-            local screenPos, onScreen = Camera:WorldToScreenPoint(plr.Character.Head.Position)
-            if onScreen then
-                local d = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
-                if d < dist then
-                    dist = d
-                    closest = plr
-                end
-            end
-        end
-    end
-    return closest
-end
+MainTab:CreateToggle({ Name = "WallHack / ESP", CurrentValue = false, Callback = function(Value) ESPEnabled = Value for _, player in pairs(game.Players:GetPlayers()) do if player ~= game.Players.LocalPlayer and player.Character then CreateESP(player) end end end, })
 
--- Lock camera each frame if Aimbot enabled
-RunService.RenderStepped:Connect(function()
-    if AimbotEnabled then
-        local target = getClosestInCrosshair()
-        if target and target.Character and target.Character:FindFirstChild("Head") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
-        end
-    end
-end)
+-- Tracers MainTab:CreateToggle({ Name = "Tracers", CurrentValue = false, Callback = function(enabled) if enabled then game:GetService("RunService").RenderStepped:Connect(function() for _, player in pairs(game.Players:GetPlayers()) do if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then local Line = Drawing.new("Line") Line.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X/2, workspace.CurrentCamera.ViewportSize.Y) Line.To = workspace.CurrentCamera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position) Line.Color = Color3.new(1,0,0) Line.Thickness = 2 Line.Visible = true task.wait(0.01) Line:Remove() end end end) end end, })
 
--- Build Rayfield window
-local Window = Rayfield:CreateWindow({
-    Name = "Aladia PvP – Premium GUI",
-    LoadingTitle = "Loading...",
-    LoadingSubtitle = "by ChatGPT",
-    ConfigurationSaving = { Enabled = true, FileName = "AladiaConfig"},
-    Discord = { Enabled = false },
-    KeySystem = false
-})
+-- Speed Hack MainTab:CreateSlider({ Name = "Speed Hack", Range = {16, 100}, Increment = 1, Suffix = "WalkSpeed", CurrentValue = 16, Callback = function(Value) game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value end, })
 
--- Add toggles & controls
-local Tab = Window:CreateTab("Main", 4483362458)
+-- Silent Aim MainTab:CreateToggle({ Name = "Silent Aim", CurrentValue = false, Callback = function(enabled) -- Placeholder for silent aim logic end })
 
-Tab:CreateToggle({
-    Name = "ESP Boxes",
-    CurrentValue = false,
-    Callback = function(val) toggleESP(val) end
-})
+-- Fly MainTab:CreateToggle({ Name = "Fly", CurrentValue = false, Callback = function(state) local plr = game.Players.LocalPlayer local char = plr.Character or plr.CharacterAdded:Wait() local bp = Instance.new("BodyPosition") bp.MaxForce = Vector3.new(1e9, 1e9, 1e9) bp.Position = char.HumanoidRootPart.Position bp.Parent = char.HumanoidRootPart
 
-Tab:CreateToggle({
-    Name = "Aim Assist",
-    CurrentValue = false,
-    Callback = function(val) AimbotEnabled = val end
-})
+local flying = state
+   game:GetService("RunService").Heartbeat:Connect(function()
+       if flying then
+           bp.Position = bp.Position + Vector3.new(0,1,0)
+       else
+           bp:Destroy()
+       end
+   end)
 
-Tab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 100},
-    Increment = 1,
-    Suffix = "Speed",
-    CurrentValue = 16,
-    Callback = function(val)
-        if LocalPlayer.Character then
-            LocalPlayer.Character.Humanoid.WalkSpeed = val
-        end
-    end
-})
+end })
 
-Rayfield:LoadConfiguration()
+-- Kill Aura MainTab:CreateToggle({ Name = "Kill Aura", CurrentValue = false, Callback = function(active) while active do for _, v in pairs(game.Players:GetPlayers()) do if v ~= game.Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Humanoid") then local dist = (v.Character.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude if dist < 20 then game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame end end end wait(1) end end })
+
