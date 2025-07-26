@@ -1,0 +1,102 @@
+-- main.lua: Aladia PvP – Rayfield UI Script (Safe Features Only)
+
+-- Enable secure mode and load official Rayfield
+getgenv().SecureMode = true
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Settings
+local ESPEnabled = false
+local AimbotEnabled = false
+
+-- Helper: Highlight ESP
+local function toggleESP(state)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local existing = plr.Character:FindFirstChild("ESPBox")
+            if state and not existing then
+                local hl = Instance.new("Highlight")
+                hl.Name = "ESPBox"
+                hl.FillColor = Color3.new(1, 0, 0)
+                hl.OutlineColor = Color3.new(1, 1, 1)
+                hl.Adornee = plr.Character
+                hl.Parent = plr.Character
+            elseif not state and existing then
+                existing:Destroy()
+            end
+        end
+    end
+end
+
+-- Get closest on-screen player
+local function getClosestInCrosshair()
+    local closest, dist = nil, math.huge
+    local mousePos = LocalPlayer:GetMouse()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") then
+            local screenPos, onScreen = Camera:WorldToScreenPoint(plr.Character.Head.Position)
+            if onScreen then
+                local d = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+                if d < dist then
+                    dist = d
+                    closest = plr
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Lock camera each frame if Aimbot enabled
+RunService.RenderStepped:Connect(function()
+    if AimbotEnabled then
+        local target = getClosestInCrosshair()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+end)
+
+-- Build Rayfield window
+local Window = Rayfield:CreateWindow({
+    Name = "Aladia PvP – Premium GUI",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "by ChatGPT",
+    ConfigurationSaving = { Enabled = true, FileName = "AladiaConfig"},
+    Discord = { Enabled = false },
+    KeySystem = false
+})
+
+-- Add toggles & controls
+local Tab = Window:CreateTab("Main", 4483362458)
+
+Tab:CreateToggle({
+    Name = "ESP Boxes",
+    CurrentValue = false,
+    Callback = function(val) toggleESP(val) end
+})
+
+Tab:CreateToggle({
+    Name = "Aim Assist",
+    CurrentValue = false,
+    Callback = function(val) AimbotEnabled = val end
+})
+
+Tab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 100},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 16,
+    Callback = function(val)
+        if LocalPlayer.Character then
+            LocalPlayer.Character.Humanoid.WalkSpeed = val
+        end
+    end
+})
+
+Rayfield:LoadConfiguration()
